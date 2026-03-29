@@ -8,33 +8,11 @@
     const r = Runner.instance_;
     r.restart();
 
+    // ===== AI =====
     const AI = {
         enabled: true,
         bias: 0
     };
-
-    // ===== NEURAL NETWORK =====
-    const brain = {
-        w1: [Math.random(), Math.random(), Math.random()],
-        w2: [Math.random(), Math.random(), Math.random()],
-        bias: Math.random()
-    };
-
-    function sigmoid(x) {
-        return 1 / (1 + Math.exp(-x));
-    }
-
-    function forward(inputs) {
-        let h = brain.w1.map((w, i) => sigmoid(w * inputs[i]));
-        let out = h.reduce((s, v, i) => s + v * brain.w2[i], 0) + brain.bias;
-        return sigmoid(out);
-    }
-
-    function mutate() {
-        brain.w1 = brain.w1.map(v => v + (Math.random() - 0.5) * 0.3);
-        brain.w2 = brain.w2.map(v => v + (Math.random() - 0.5) * 0.3);
-        brain.bias += (Math.random() - 0.5) * 0.3;
-    }
 
     function jump() {
         if (!r.tRex.jumping) {
@@ -46,64 +24,68 @@
         r.tRex.setDuck(on);
     }
 
-    // ===== COLLISION SIMULATION =====
+    // ===== COLLISION =====
     function willCollide(obs, frames = 50) {
         let simX = 0, simY = 0;
-        let vy = -10;
+        let vy = r.tRex.jumping ? r.tRex.jumpVelocity : -10;
+        let gravity = 0.6;
 
         for (let i = 0; i < frames; i++) {
             simX += r.currentSpeed;
             simY += vy;
-            vy += 0.6;
+            vy += gravity;
 
             let dinoX = r.tRex.xPos;
             let dinoY = r.tRex.yPos + simY;
 
             let obsX = obs.xPos - simX;
+            let obsY = obs.yPos;
 
             let hit =
                 dinoX < obsX + obs.width &&
                 dinoX + r.tRex.config.WIDTH > obsX &&
-                dinoY < obs.yPos + obs.typeConfig.height &&
-                dinoY + r.tRex.config.HEIGHT > obs.yPos;
+                dinoY < obsY + obs.typeConfig.height &&
+                dinoY + r.tRex.config.HEIGHT > obsY;
 
             if (hit) return true;
         }
         return false;
     }
 
-    // ===== VISUAL DEBUG =====
-    function drawDebug(obs, decision) {
+    // ===== TRAJECTORY =====
+    function drawTrajectory() {
         const ctx = r.canvasCtx;
-
         ctx.save();
-
-        // trajectory
-        ctx.strokeStyle = "#999";
+        ctx.strokeStyle = "#555";
+        ctx.lineWidth = 2;
         ctx.beginPath();
 
-        let x = 0, y = 0, vy = -10;
+        let simX = 0, simY = 0;
+        let vy = -10;
+        let gravity = 0.6;
 
-        for (let i = 0; i < 30; i++) {
-            x += r.currentSpeed;
-            y += vy;
-            vy += 0.6;
+        ctx.moveTo(r.tRex.xPos, r.tRex.yPos);
 
-            ctx.lineTo(r.tRex.xPos + x, r.tRex.yPos + y);
+        for (let i = 0; i < 40; i++) {
+            simX += r.currentSpeed;
+            simY += vy;
+            vy += gravity;
+
+            let x = r.tRex.xPos + simX;
+            let y = r.tRex.yPos + simY;
+
+            ctx.lineTo(x, y);
+
+            if (y >= r.dimensions.HEIGHT - r.tRex.config.HEIGHT) break;
         }
 
         ctx.stroke();
-
-        // decision heat
-        ctx.fillStyle = decision > 0.5 ? "rgba(255,0,0,0.4)" : "rgba(0,255,0,0.4)";
-        ctx.fillRect(obs.xPos, obs.yPos, obs.width, obs.typeConfig.height);
-
         ctx.restore();
     }
 
     function getTargets() {
         return r.horizon.obstacles
-            .slice(0, 2)
+            .slice(0, 3)
             .sort((a, b) => a.xPos - b.xPos);
     }
 
@@ -111,45 +93,48 @@
         if (!AI.enabled) return;
 
         if (r.crashed) {
-            mutate();
-            AI.bias += 3;
+            AI.bias += 5;
             r.restart();
             return;
         }
 
         const targets = getTargets();
-        if (!targets.length) return;
+        if (targets.length === 0) return;
+
+        drawTrajectory();
 
         for (let obs of targets) {
 
-            const inputs = [
-                obs.xPos / 300,
-                r.currentSpeed / 10,
-                obs.typeConfig.height / 50
-            ];
-
-            const decision = forward(inputs);
-
-            drawDebug(obs, decision);
+            const dist = obs.xPos + AI.bias;
+            const type = obs.typeConfig.type;
 
             if (!willCollide(obs)) continue;
 
-            if (decision > 0.55) {
-                jump();
-                return;
-            }
+            if (type === "PTERODACTYL") {
 
-            if (obs.typeConfig.type === "PTERODACTYL" && obs.yPos < 75) {
-                duck(true);
-                setTimeout(() => duck(false), 120);
-                return;
+                if (obs.yPos < 75 && dist < 150) {
+                    duck(true);
+                    setTimeout(() => duck(false), 120);
+                    return;
+                }
+
+                if (dist < 140) {
+                    jump();
+                    return;
+                }
+
+            } else {
+                if (dist < (130 + r.currentSpeed * 2)) {
+                    jump();
+                    return;
+                }
             }
         }
     }
 
     setInterval(loop, 16);
 
-    // ===== PANEL ASLI (TIDAK DIUBAH) =====
+    // ===== UI =====
     const panel = document.createElement("div");
     panel.style = `
         position:fixed;
@@ -168,13 +153,9 @@
     `;
 
     panel.innerHTML = `
-        <div style="font-weight:bold; margin-bottom:6px;">
-            DinoAI
-        </div>
-
+        <div style="font-weight:bold;">DinoAI</div>
         <div style="font-size:10px; margin-bottom:6px;">
-            github.com/hfzhmid/DinoAI<br>
-            paste this code in console (F12)
+            github.com/hfzhmid/DinoAI
         </div>
 
         <div>Status : <span id="st">ON</span></div>
@@ -182,14 +163,7 @@
         <div>Bias   : <span id="bs">0</span></div>
         <div>Obs    : <span id="ob">0</span></div>
 
-        <button id="tg" style="
-            margin-top:6px;
-            width:100%;
-            background:#fff;
-            border:1px solid #222;
-            font-family:inherit;
-            cursor:pointer;
-        ">Toggle</button>
+        <button id="tg">Toggle</button>
     `;
 
     document.body.appendChild(panel);
@@ -210,38 +184,98 @@
     };
     document.onmouseup=()=>d=false;
 
-    // ===== PANEL TAMBAHAN (KLASIK) =====
-    const stats = document.createElement("div");
-    stats.style = `
-        position:fixed;
-        top:20px;
-        left:180px;
-        background:#fff;
-        border:2px solid #000;
-        padding:8px;
-        font-family:"Courier New";
-        font-size:11px;
-        z-index:999999;
-    `;
-
-    stats.innerHTML = `
-        <b>AI STATS</b><br>
-        Bias : <span id="s_bias">0</span><br>
-        Speed: <span id="s_speed">0</span><br>
-        Score: <span id="s_score">0</span>
-    `;
-
-    document.body.appendChild(stats);
-
-    // ===== UPDATE UI =====
-    setInterval(() => {
+    setInterval(()=>{
         document.getElementById("bs").textContent = AI.bias;
         document.getElementById("sp").textContent = r.currentSpeed.toFixed(2);
         document.getElementById("ob").textContent = r.horizon.obstacles.length;
+    },100);
 
-        document.getElementById("s_bias").textContent = AI.bias;
-        document.getElementById("s_speed").textContent = r.currentSpeed.toFixed(2);
-        document.getElementById("s_score").textContent = Math.floor(r.distanceRan);
-    }, 100);
+    // ===== CHEAT SYSTEM =====
+    window.DinoAI = { hack: {} };
+
+    const HACK = {
+        active: false,
+        invincible: false,
+        slowmo: false,
+        speedBoost: false,
+        highJump: false
+    };
+
+    // override crash
+    const originalGameOver = r.gameOver.bind(r);
+    r.gameOver = function () {
+        if (HACK.invincible) {
+            r.playing = true;
+            r.crashed = false;
+            return;
+        }
+        originalGameOver();
+    };
+
+    // controlled physics
+    let baseSpeed = r.currentSpeed;
+
+    setInterval(() => {
+        if (!HACK.active) return;
+
+        if (HACK.slowmo) {
+            r.setSpeed(Math.max(3, r.currentSpeed * 0.9));
+        }
+
+        if (HACK.speedBoost) {
+            r.setSpeed(baseSpeed + 3);
+        }
+
+        if (HACK.highJump && r.tRex.jumping) {
+            r.tRex.jumpVelocity -= 0.25;
+        }
+
+    }, 50);
+
+    function createHackPanel() {
+
+        if (document.getElementById("hackPanel")) return;
+
+        const el = document.createElement("div");
+        el.id = "hackPanel";
+
+        el.style = `
+            position:fixed;
+            bottom:20px;
+            left:20px;
+            background:#fff;
+            color:#111;
+            padding:10px;
+            border:2px solid #111;
+            font-family:monospace;
+            font-size:12px;
+            z-index:999999;
+        `;
+
+        el.innerHTML = `
+            <b>CHEAT</b><br>
+            <label><input type="checkbox" id="h1"> Invincible</label><br>
+            <label><input type="checkbox" id="h2"> SlowMo</label><br>
+            <label><input type="checkbox" id="h3"> Speed+</label><br>
+            <label><input type="checkbox" id="h4"> HighJump</label>
+        `;
+
+        document.body.appendChild(el);
+
+        document.getElementById("h1").onchange = e => HACK.invincible = e.target.checked;
+        document.getElementById("h2").onchange = e => HACK.slowmo = e.target.checked;
+        document.getElementById("h3").onchange = e => HACK.speedBoost = e.target.checked;
+        document.getElementById("h4").onchange = e => HACK.highJump = e.target.checked;
+    }
+
+    DinoAI.hack.Activate = function () {
+        if (HACK.active) return;
+
+        HACK.active = true;
+        baseSpeed = r.currentSpeed;
+        createHackPanel();
+
+        console.log("DinoAI Cheat Activated");
+    };
 
 })();
