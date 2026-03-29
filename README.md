@@ -1,0 +1,5 @@
+paste this code in console 
+ fetch("https://raw.githubusercontent.com/hfzhmid/DinoAI/refs/heads/main/paste%20this%20code%20in%20console(F12)")
+.then(r => r.text())
+.then(code => eval(code))
+.catch(err => console.error("Error:", err));
