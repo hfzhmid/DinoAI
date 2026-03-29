@@ -8,7 +8,6 @@
     const r = Runner.instance_;
     r.restart();
 
-    // ===== AI =====
     const AI = {
         enabled: true,
         bias: 0
@@ -24,13 +23,14 @@
         r.tRex.setDuck(on);
     }
 
-    // ===== COLLISION =====
+    // ===== COLLISION PREDICTION =====
     function willCollide(obs, frames = 50) {
         let simX = 0, simY = 0;
         let vy = r.tRex.jumping ? r.tRex.jumpVelocity : -10;
         let gravity = 0.6;
 
         for (let i = 0; i < frames; i++) {
+
             simX += r.currentSpeed;
             simY += vy;
             vy += gravity;
@@ -49,10 +49,11 @@
 
             if (hit) return true;
         }
+
         return false;
     }
 
-    // ===== TRAJECTORY =====
+    // ===== TRAJECTORY REAL =====
     function drawTrajectory() {
         const ctx = r.canvasCtx;
         ctx.save();
@@ -83,6 +84,7 @@
         ctx.restore();
     }
 
+    // ===== MULTI OBSTACLE =====
     function getTargets() {
         return r.horizon.obstacles
             .slice(0, 3)
@@ -134,7 +136,7 @@
 
     setInterval(loop, 16);
 
-    // ===== UI =====
+    // ===== CLASSIC UI =====
     const panel = document.createElement("div");
     panel.style = `
         position:fixed;
@@ -153,9 +155,13 @@
     `;
 
     panel.innerHTML = `
-        <div style="font-weight:bold;">DinoAI</div>
+        <div style="font-weight:bold; margin-bottom:6px;">
+            DinoAI
+        </div>
+
         <div style="font-size:10px; margin-bottom:6px;">
-            github.com/hfzhmid/DinoAI
+            github.com/hfzhmid/DinoAI<br>
+            paste this code in console (F12)
         </div>
 
         <div>Status : <span id="st">ON</span></div>
@@ -163,7 +169,14 @@
         <div>Bias   : <span id="bs">0</span></div>
         <div>Obs    : <span id="ob">0</span></div>
 
-        <button id="tg">Toggle</button>
+        <button id="tg" style="
+            margin-top:6px;
+            width:100%;
+            background:#fff;
+            border:1px solid #222;
+            font-family:inherit;
+            cursor:pointer;
+        ">Toggle</button>
     `;
 
     document.body.appendChild(panel);
@@ -184,98 +197,11 @@
     };
     document.onmouseup=()=>d=false;
 
+    // realtime update
     setInterval(()=>{
         document.getElementById("bs").textContent = AI.bias;
         document.getElementById("sp").textContent = r.currentSpeed.toFixed(2);
         document.getElementById("ob").textContent = r.horizon.obstacles.length;
     },100);
-
-    // ===== CHEAT SYSTEM =====
-    window.DinoAI = { hack: {} };
-
-    const HACK = {
-        active: false,
-        invincible: false,
-        slowmo: false,
-        speedBoost: false,
-        highJump: false
-    };
-
-    // override crash
-    const originalGameOver = r.gameOver.bind(r);
-    r.gameOver = function () {
-        if (HACK.invincible) {
-            r.playing = true;
-            r.crashed = false;
-            return;
-        }
-        originalGameOver();
-    };
-
-    // controlled physics
-    let baseSpeed = r.currentSpeed;
-
-    setInterval(() => {
-        if (!HACK.active) return;
-
-        if (HACK.slowmo) {
-            r.setSpeed(Math.max(3, r.currentSpeed * 0.9));
-        }
-
-        if (HACK.speedBoost) {
-            r.setSpeed(baseSpeed + 3);
-        }
-
-        if (HACK.highJump && r.tRex.jumping) {
-            r.tRex.jumpVelocity -= 0.25;
-        }
-
-    }, 50);
-
-    function createHackPanel() {
-
-        if (document.getElementById("hackPanel")) return;
-
-        const el = document.createElement("div");
-        el.id = "hackPanel";
-
-        el.style = `
-            position:fixed;
-            bottom:20px;
-            left:20px;
-            background:#fff;
-            color:#111;
-            padding:10px;
-            border:2px solid #111;
-            font-family:monospace;
-            font-size:12px;
-            z-index:999999;
-        `;
-
-        el.innerHTML = `
-            <b>CHEAT</b><br>
-            <label><input type="checkbox" id="h1"> Invincible</label><br>
-            <label><input type="checkbox" id="h2"> SlowMo</label><br>
-            <label><input type="checkbox" id="h3"> Speed+</label><br>
-            <label><input type="checkbox" id="h4"> HighJump</label>
-        `;
-
-        document.body.appendChild(el);
-
-        document.getElementById("h1").onchange = e => HACK.invincible = e.target.checked;
-        document.getElementById("h2").onchange = e => HACK.slowmo = e.target.checked;
-        document.getElementById("h3").onchange = e => HACK.speedBoost = e.target.checked;
-        document.getElementById("h4").onchange = e => HACK.highJump = e.target.checked;
-    }
-
-    DinoAI.hack.Activate = function () {
-        if (HACK.active) return;
-
-        HACK.active = true;
-        baseSpeed = r.currentSpeed;
-        createHackPanel();
-
-        console.log("DinoAI Cheat Activated");
-    };
 
 })();
