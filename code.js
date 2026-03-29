@@ -160,8 +160,8 @@
         </div>
 
         <div style="font-size:10px; margin-bottom:6px;">
-            github.com/hfzhmid/DinoAI<br>
-            paste this code in console (F12)
+                    github com hfzhmid DinoAI
+             blob main README md paste this in console
         </div>
 
         <div>Status : <span id="st">ON</span></div>
