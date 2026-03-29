@@ -23,7 +23,6 @@
         r.tRex.setDuck(on);
     }
 
-    // ===== COLLISION PREDICTION =====
     function willCollide(obs, frames = 50) {
         let simX = 0, simY = 0;
         let vy = r.tRex.jumping ? r.tRex.jumpVelocity : -10;
@@ -53,7 +52,6 @@
         return false;
     }
 
-    // ===== TRAJECTORY REAL =====
     function drawTrajectory() {
         const ctx = r.canvasCtx;
         ctx.save();
@@ -84,7 +82,6 @@
         ctx.restore();
     }
 
-    // ===== MULTI OBSTACLE =====
     function getTargets() {
         return r.horizon.obstacles
             .slice(0, 3)
@@ -136,7 +133,6 @@
 
     setInterval(loop, 16);
 
-    // ===== CLASSIC UI =====
     const panel = document.createElement("div");
     panel.style = `
         position:fixed;
@@ -162,7 +158,7 @@
         <div style="font-size:10px; margin-bottom:6px;">
         
                 ============================
-                =https://github.com/hfzhmid=
+                 https://github.com/hfzhmid
                 ============================
                 
         </div>
@@ -189,7 +185,6 @@
         document.getElementById("st").textContent = AI.enabled ? "ON" : "OFF";
     };
 
-    // drag
     let d=false,ox,oy;
     panel.onmousedown=e=>{d=true;ox=e.offsetX;oy=e.offsetY;}
     document.onmousemove=e=>{
@@ -200,7 +195,6 @@
     };
     document.onmouseup=()=>d=false;
 
-    // realtime update
     setInterval(()=>{
         document.getElementById("bs").textContent = AI.bias;
         document.getElementById("sp").textContent = r.currentSpeed.toFixed(2);
