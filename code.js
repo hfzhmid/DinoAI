@@ -147,7 +147,7 @@
 
     panel.innerHTML = `
         <div style="font-weight:bold; margin-bottom:6px;">
-            DinoAI
+            DinoAI v1
         </div>
 
         <div style="font-size:10px; margin-bottom:6px;">
