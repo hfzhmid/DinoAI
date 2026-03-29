@@ -1,10 +1,5 @@
 (function () {
 
-    if (typeof Runner === "undefined" || !Runner.instance_) {
-        alert("Buka chrome://dino dulu dan mulai game");
-        return;
-    }
-
     const r = Runner.instance_;
     r.restart();
 
