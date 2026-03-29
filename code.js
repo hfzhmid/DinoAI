@@ -160,8 +160,11 @@
         </div>
 
         <div style="font-size:10px; margin-bottom:6px;">
-                    github com hfzhmid DinoAI
-             blob main README md paste this in console
+        
+                ============================
+                =https://github.com/hfzhmid=
+                ============================
+                
         </div>
 
         <div>Status : <span id="st">ON</span></div>
