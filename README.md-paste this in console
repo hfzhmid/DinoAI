@@ -1,7 +1,4 @@
-console.log("Injecting Code")
-
 fetch("https://raw.githubusercontent.com/hfzhmid/DinoAI/refs/heads/main/code.js")
 .then(r => r.text())
 .then(code => eval(code))
 .catch(err => console.error("Error:", err));
-console.log("Code Injected")
